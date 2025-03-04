@@ -127,19 +127,18 @@
         }
 
         /* 修改 URL 显示样式 */
-.result .item i {
-    font-size: 14px;
-    color:green;
-    display: block;
-    word-wrap: break-word; /* 自动换行 */
-    overflow: hidden; /* 超出部分隐藏 */
-    white-space: normal; /* 允许换行 */
-    text-overflow: ellipsis; /* 超出部分用省略号显示 */
-    max-width: 100%; /* 防止超出宽度 */
-    line-height: 1.6; /* 行间距 */
-    word-break: break-all; /* 强制断字换行 */
-}
-
+        .result .item i {
+            font-size: 14px;
+            color: green;
+            display: block;
+            word-wrap: break-word;
+            overflow: hidden;
+            white-space: normal;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            line-height: 1.6;
+            word-break: break-all;
+        }
 
         /* 高亮匹配文字 */
         .highlight {
@@ -165,6 +164,95 @@
         .pagination a:hover {
             background-color: #3a5ad9;
         }
+
+        /* 模态框样式 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            width: 400px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #4e6ef2;
+            text-align: center;
+        }
+
+        .modal-content label {
+            display: block;
+            margin: 10px 0 5px;
+            color: #666;
+        }
+
+        .modal-content input {
+            width: 100%;
+            height: 40px;
+            padding-left: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            color: #666;
+        }
+
+        .modal-content button {
+            width: 100%;
+            height: 40px;
+            background-color: #4e6ef2;
+            color: #fff;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        .modal-content button:hover {
+            background-color: #3a5ad9;
+        }
+
+        .modal-content p {
+            text-align: center;
+            margin-top: 10px;
+            color: #666;
+        }
+
+        .modal-content a {
+            color: #4e6ef2;
+            text-decoration: none;
+        }
+
+        .modal-content a:hover {
+            text-decoration: underline;
+        }
+
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            color: #888;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #444;
+        }
     </style>
 </head>
 <body>
@@ -187,13 +275,135 @@
         <div class="pagination" id="pagination"></div>
     </div>
 
+    <!-- 登录模态框 -->
+    <div id="loginModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('loginModal')">×</span>
+            <h2>登录</h2>
+            <form id="loginForm">
+                <label for="loginUsername">用户名:</label>
+                <input type="text" id="loginUsername" required>
+                <label for="loginPassword">密码:</label>
+                <input type="password" id="loginPassword" required>
+                <button type="button" onclick="login()">登录</button>
+                <p>没有账号？<a href="#" onclick="showRegisterModal()">注册</a></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- 注册模态框 -->
+    <div id="registerModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('registerModal')">×</span>
+            <h2>注册</h2>
+            <form id="registerForm">
+                <label for="regUsername">用户名:</label>
+                <input type="text" id="regUsername" required>
+                <label for="regPassword">密码:</label>
+                <input type="password" id="regPassword" required>
+                <label for="regConfirmPassword">确认密码:</label>
+                <input type="password" id="regConfirmPassword" required>
+                <button type="button" onclick="register()">注册</button>
+                <p>已有账号？<a href="#" onclick="showLoginModal()">登录</a></p>
+            </form>
+        </div>
+    </div>
+
     <script>
         let currentPage = 1;
-        const resultsPerPage = 15;
+        const resultsPerPage = 8;
         let allResults = [];
+        let isLoggedIn = false; // 默认未登录
+
+        // 显示登录模态框
+        function showLoginModal() {
+            $("#loginModal").show();
+            $("#registerModal").hide();
+        }
+
+        // 显示注册模态框
+        function showRegisterModal() {
+            $("#registerModal").show();
+            $("#loginModal").hide();
+        }
+
+        // 关闭模态框
+        function closeModal(modalId) {
+            $("#" + modalId).hide();
+        }
+
+        // 登录功能
+        function login() {
+            const username = $("#loginUsername").val();
+            const password = $("#loginPassword").val();
+
+            if (username === "" || password === "") {
+                alert("请输入用户名和密码！");
+                return;
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "http://localhost:8083/login",
+                data: JSON.stringify({ username: username, password: password }),
+                contentType: "application/json",
+                success: function(response) {
+                    if (response.success) {
+                        isLoggedIn = true;
+                        alert("登录成功！");
+                        closeModal("loginModal");
+                        Search(); // 登录成功后自动触发搜索
+                    } else {
+                        alert("登录失败：" + response.message);
+                    }
+                },
+                error: function() {
+                    alert("登录请求失败，请稍后重试！");
+                }
+            });
+        }
+
+        // 注册功能
+        function register() {
+            const username = $("#regUsername").val();
+            const password = $("#regPassword").val();
+            const confirmPassword = $("#regConfirmPassword").val();
+
+            if (username === "" || password === "" || confirmPassword === "") {
+                alert("请填写所有字段！");
+                return;
+            }
+            if (password !== confirmPassword) {
+                alert("两次输入的密码不一致！");
+                return;
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "http://localhost:8083/register",
+                data: JSON.stringify({ username: username, password: password }),
+                contentType: "application/json",
+                success: function(response) {
+                    if (response.success) {
+                        alert("注册成功，请登录！");
+                        showLoginModal();
+                    } else {
+                        alert("注册失败：" + response.message);
+                    }
+                },
+                error: function() {
+                    alert("注册请求失败，请稍后重试！");
+                }
+            });
+        }
 
         // 搜索功能
         function Search() {
+            if (!isLoggedIn) {
+                showLoginModal();
+                return;
+            }
+
             const query = $("#searchInput").val();
             if (query === "") {
                 alert("请输入搜索内容！");
@@ -202,15 +412,17 @@
 
             console.log("searching for:", query);
 
-            // 模拟后端请求 (这里你可以替换为真实的AJAX请求)
             $.ajax({
                 type: "GET",
-                url: "/s?word=" + query,
+                url: "http://localhost:8083/s?word=" + query,
                 success: function(data) {
-                    allResults = data; // 获取数据
-                    currentPage = 1; // 重置为第一页
+                    allResults = data;
+                    currentPage = 1;
                     renderResults();
                     renderPagination();
+                },
+                error: function() {
+                    alert("搜索请求失败，请稍后重试！");
                 }
             });
         }
@@ -225,7 +437,6 @@
                 return;
             }
 
-            // 获取当前页的数据
             const start = (currentPage - 1) * resultsPerPage;
             const end = currentPage * resultsPerPage;
             const pageResults = allResults.slice(start, end);
